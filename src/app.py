@@ -1,14 +1,12 @@
 import datetime
 import os
 
-from flask import Flask, jsonify, request
-from flask.scaffold import F
+from flask import Flask, json, jsonify, request
 from flask_marshmallow import Marshmallow
 from flask_sqlalchemy import SQLAlchemy
-from marshmallow import fields, validate
+from marshmallow import fields, validate, ValidationError
 from sqlalchemy import DateTime
 from sqlalchemy.sql import func
-from sqlalchemy.sql.expression import null
 
 BASE_DIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -21,7 +19,6 @@ app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///" + os.path.join(
     BASE_DIR, "db.sqlite3"
 )
 db = SQLAlchemy(app)
-
 
 # Add Marshmallow
 ma = Marshmallow(app)
@@ -62,18 +59,17 @@ class BookMarkSchema(ma.Schema):
     class Meta:
         fields = ("id", "title", "description", "url", "created_at", "updated_at")
 
-
-BookMark = BookMarkSchema()
-BookMarks = BookMarkSchema(many=True)
+bookMarkSchema = BookMarkSchema()
+bookMarksSchema = BookMarkSchema(many=True)
 
 
 # API ROUTES
+
 # Get all bookmarks
 @app.route("/bookmarks/", methods=["GET"])
 def book_marks():
     all_bookmarks = BookMarkModel.query.all()
-    return jsonify(BookMarks.dump(all_bookmarks))
-
+    return jsonify(bookMarksSchema.dump(all_bookmarks))
 
 # CREATE a bookmark
 @app.route("/bookmark/", methods=["POST"])
@@ -83,7 +79,7 @@ def create_bookmark():
     url = request.json["url"]
 
     # Validate the data from request before serialization
-    error = BookMark.validate({"title": title, "description": description, "url": url})
+    error = bookMarkSchema.validate({"title": title, "description": description, "url": url})
     if error:
         return jsonify(error)
 
@@ -94,17 +90,23 @@ def create_bookmark():
         created_at=datetime.datetime.now(),
         updated_at=datetime.datetime.now(),
     )
+    result = bookMarkSchema.dump(book_mark)
     db.session.add(book_mark)
     db.session.commit()
-    return BookMark.jsonify(book_mark)
+    return result, 201
 
 
 # READ a paticular bookmark
 @app.route("/bookmark/<int:id>/", methods=["GET"])
 def read_bookmark(id):
     book_mark = BookMarkModel.query.get(id)
-    return BookMark.jsonify(book_mark)
 
+    try:
+        # result = bookMarkSchema.load(json.loads(bookMarkSchema.dump(book_mark)))
+        result = bookMarkSchema.dump(book_mark)
+    except ValidationError as err:
+        return err.messages, 422
+    return result
 
 # UPDATE a particular bookmark
 @app.route("/bookmark/<int:id>/", methods=["PUT"])
@@ -119,13 +121,17 @@ def update_bookmark(id):
     book_mark.url = url
 
     # Validate the data from request before serialization
-    error = BookMark.validate({"title": title, "description": description, "url": url})
+    error = bookMarkSchema.validate({"title": title, "description": description, "url": url})
     if error:
         return jsonify(error)
+    try:
+        result = bookMarkSchema.dump(book_mark)
+    except ValidationError as err:
+        return err.messages, 422
 
     db.session.add(book_mark)
     db.session.commit()
-    return BookMark.jsonify(book_mark)
+    return result
 
 
 # DELETE a particular bookmark

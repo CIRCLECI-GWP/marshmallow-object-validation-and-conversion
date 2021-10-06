@@ -8,7 +8,7 @@ It uses SQLAlchemy to manage models, SQLite for data storage, Marshmallow for
 data serialization,deserialization, and validation and tests created with
 pytest. Finally, it incoporates Circle CI for Continuous Intergration.
 
-## Instalation
+## Installation
 ---
 ```shell
 python -m venv venv

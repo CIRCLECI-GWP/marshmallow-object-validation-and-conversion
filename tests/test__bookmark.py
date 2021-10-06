@@ -2,7 +2,6 @@ import random
 import sqlite3
 import string
 
-import pytest
 from flask import json
 from src.app import app
 
@@ -12,11 +11,9 @@ def generate_random_letters(num=50):
     words = "".join(random.choice(word) for i in range(num))
     return words
 
-
 def generate_random_domain():
     list = [".com", ".net", ".org", ".edu", ".info"]
     return random.choice(list)
-
 
 def generate_random_url():
     s1 = generate_random_letters(10)
@@ -44,21 +41,22 @@ def test_post_one_bookmarks():
         data=json.dumps(my_data),
         content_type="application/json",
     )
-    data = json.loads(res.get_data(as_text=True))
-
-    assert res.status_code == 200
+    assert res.status_code == 201
 
 
-# test if all bookmarks are returned
+# Test if all bookmarks are returned
 def test_get_all_bookmarks_route():
     res = app.test_client().get("/bookmarks/")
-    data = json.loads(res.get_data(as_text=True))
+    assert res.status_code == 200
+
+# Test if a single bookmark are returned
+def test_get_one_bookmark_route():
+    res = app.test_client().get("/bookmark/1/")
     assert res.status_code == 200
 
 
-# test json data format is  are returned
+# Test json data format is  are returned
 def test_get_json_data_format_returns():
     res = app.test_client().get("/bookmarks/")
-    data = json.loads(res.get_data(as_text=True))
     assert res.status_code == 200
     assert res.headers["Content-Type"] == "application/json"
