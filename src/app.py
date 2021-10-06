@@ -2,6 +2,7 @@ import datetime
 import os
 
 from flask import Flask, json, jsonify, request
+# from webargs import validate
 from flask_marshmallow import Marshmallow
 from flask_sqlalchemy import SQLAlchemy
 from marshmallow import fields, validate, ValidationError
@@ -46,9 +47,13 @@ class BookMarkModel(db.Model):
 db.create_all()
 db.session.commit()
 
+def must_not_be_blank(data):
+    if not data:
+        raise ValidationError("Data not provided.")
+
 # Create schema with object validation (marshmallow)
 class BookMarkSchema(ma.Schema):
-    title = fields.Str(required=True, allow_none=False)
+    title = fields.String(required=True, allow_none=False, validate=must_not_be_blank)
     url = fields.URL(
         relative=True, require_tld=True, error="invalid url representation"
     )
@@ -61,7 +66,6 @@ class BookMarkSchema(ma.Schema):
 
 bookMarkSchema = BookMarkSchema()
 bookMarksSchema = BookMarkSchema(many=True)
-
 
 # API ROUTES
 
@@ -90,7 +94,13 @@ def create_bookmark():
         created_at=datetime.datetime.now(),
         updated_at=datetime.datetime.now(),
     )
-    result = bookMarkSchema.dump(book_mark)
+    try:
+        json_input = request.get_json()
+        result = bookMarkSchema.load(json_input)
+    except ValidationError as err:
+        return {"errors": err.messages}, 422
+
+    # result = bookMarkSchema.dump(book_mark)
     db.session.add(book_mark)
     db.session.commit()
     return result, 201

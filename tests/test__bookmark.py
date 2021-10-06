@@ -29,8 +29,8 @@ def test_index_page_gives_404():
     assert res.status_code == 500
 
 
-# Test if one can post data to the database
-def test_post_one_bookmarks():
+# Test if one can create bookmark in the database
+def test_create_bookmark():
     my_data = {
         "title": generate_random_letters(),
         "description": generate_random_letters(100),
@@ -41,17 +41,20 @@ def test_post_one_bookmarks():
         data=json.dumps(my_data),
         content_type="application/json",
     )
+    print(res.data.decode('utf-8'), 'res')
     assert res.status_code == 201
 
 
 # Test if all bookmarks are returned
 def test_get_all_bookmarks_route():
     res = app.test_client().get("/bookmarks/")
+    assert res.headers["Content-Type"] == "application/json"
     assert res.status_code == 200
 
-# Test if a single bookmark are returned
+# Test if a single bookmark is returned
 def test_get_one_bookmark_route():
     res = app.test_client().get("/bookmark/1/")
+    assert res.headers["Content-Type"] == "application/json"
     assert res.status_code == 200
 
 
